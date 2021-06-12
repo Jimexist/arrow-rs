@@ -75,8 +75,8 @@ impl<'a> LexicographicalPartitionIterator<'a> {
             start: 0,
             end: num_rows,
         });
-        let start = in_range.start.min(0);
-        let end = in_range.end.max(num_rows);
+        let start = in_range.start;
+        let end = in_range.end.min(num_rows);
         let comparator = LexicographicalComparator::try_new(columns)?;
         let value_indices = (start..end).collect::<Vec<usize>>();
         Ok(LexicographicalPartitionIterator {
@@ -209,6 +209,26 @@ mod tests {
                 },
             )?;
             assert_eq!(vec![(29_usize..144_usize)], results.collect::<Vec<_>>());
+        }
+        {
+            let results = lexicographical_partition_ranges_in_range(
+                &input,
+                Range {
+                    start: 29,
+                    end: 1144,
+                },
+            )?;
+            assert_eq!(vec![(29_usize..1000_usize)], results.collect::<Vec<_>>());
+        }
+        {
+            let results = lexicographical_partition_ranges_in_range(
+                &input,
+                Range {
+                    start: 229,
+                    end: 144,
+                },
+            )?;
+            assert_eq!(Vec::<Range<usize>>::new(), results.collect::<Vec<_>>());
         }
         Ok(())
     }
