@@ -36,19 +36,30 @@ use std::ops::Range;
 pub fn lexicographical_partition_ranges(
     columns: &[SortColumn],
 ) -> Result<impl Iterator<Item = Range<usize>> + '_> {
-    LexicographicalPartitionIterator::try_new(columns)
+    LexicographicalPartitionIterator::try_new(columns, None)
+}
+
+/// Similar to lexicographical_partition_ranges but only returns the ranges in the in_range param.
+pub fn lexicographical_partition_ranges_in_range(
+    columns: &[SortColumn],
+    in_range: Range<usize>,
+) -> Result<impl Iterator<Item = Range<usize>> + '_> {
+    LexicographicalPartitionIterator::try_new(columns, Some(in_range))
 }
 
 struct LexicographicalPartitionIterator<'a> {
     comparator: LexicographicalComparator<'a>,
-    num_rows: usize,
+    end: usize,
     previous_partition_point: usize,
     partition_point: usize,
     value_indices: Vec<usize>,
 }
 
 impl<'a> LexicographicalPartitionIterator<'a> {
-    fn try_new(columns: &'a [SortColumn]) -> Result<LexicographicalPartitionIterator> {
+    fn try_new(
+        columns: &'a [SortColumn],
+        in_range: Option<Range<usize>>,
+    ) -> Result<LexicographicalPartitionIterator> {
         if columns.is_empty() {
             return Err(ArrowError::InvalidArgumentError(
                 "Sort requires at least one column".to_string(),
@@ -60,14 +71,19 @@ impl<'a> LexicographicalPartitionIterator<'a> {
                 "Lexical sort columns have different row counts".to_string(),
             ));
         };
-
+        let in_range = in_range.unwrap_or(Range {
+            start: 0,
+            end: num_rows,
+        });
+        let start = in_range.start.min(0);
+        let end = in_range.end.max(num_rows);
         let comparator = LexicographicalComparator::try_new(columns)?;
-        let value_indices = (0..num_rows).collect::<Vec<usize>>();
+        let value_indices = (start..end).collect::<Vec<usize>>();
         Ok(LexicographicalPartitionIterator {
             comparator,
-            num_rows,
-            previous_partition_point: 0,
-            partition_point: 0,
+            end,
+            previous_partition_point: start,
+            partition_point: start,
             value_indices,
         })
     }
@@ -77,7 +93,7 @@ impl<'a> Iterator for LexicographicalPartitionIterator<'a> {
     type Item = Range<usize>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.partition_point < self.num_rows {
+        if self.partition_point < self.end {
             // invariant:
             // value_indices[0..previous_partition_point] all are values <= value_indices[previous_partition_point]
             // so in order to save time we can do binary search on the value_indices[previous_partition_point..]
@@ -170,6 +186,29 @@ mod tests {
         {
             let results = lexicographical_partition_ranges(&input)?;
             assert_eq!(vec![(0_usize..1000_usize)], results.collect::<Vec<_>>());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_lexicographical_partition_in_range_all_equal_values() -> Result<()> {
+        let input = vec![SortColumn {
+            values: Arc::new(Int64Array::from_value(1, 1000)) as ArrayRef,
+            options: Some(SortOptions {
+                descending: false,
+                nulls_first: true,
+            }),
+        }];
+
+        {
+            let results = lexicographical_partition_ranges_in_range(
+                &input,
+                Range {
+                    start: 29,
+                    end: 144,
+                },
+            )?;
+            assert_eq!(vec![(29_usize..144_usize)], results.collect::<Vec<_>>());
         }
         Ok(())
     }
