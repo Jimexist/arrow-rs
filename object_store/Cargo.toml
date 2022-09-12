@@ -41,7 +41,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock"] }
 futures = "0.3"
 serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
 serde_json = { version = "1.0", default-features = false, optional = true }
-quick-xml = { version = "0.23.0", features = ["serialize"], optional = true }
+quick-xml = { version = "0.25.0", features = ["serialize"], optional = true }
 rustls-pemfile = { version = "1.0", default-features = false, optional = true }
 ring = { version = "0.16", default-features = false, features = ["std"], optional = true }
 base64 = { version = "0.13", default-features = false, optional = true }
