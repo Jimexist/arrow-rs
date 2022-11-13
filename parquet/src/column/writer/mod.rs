@@ -16,6 +16,9 @@
 // under the License.
 
 //! Contains column writer API.
+
+#[cfg(feature = "bloom")]
+use crate::bloom_filter::Sbbf;
 use crate::format::{ColumnIndex, OffsetIndex};
 use std::collections::{BTreeSet, VecDeque};
 
@@ -154,6 +157,9 @@ pub struct ColumnCloseResult {
     pub rows_written: u64,
     /// Metadata for this column chunk
     pub metadata: ColumnChunkMetaData,
+    /// Optional bloom filter for this column
+    #[cfg(feature = "bloom")]
+    pub bloom_filter: Option<Sbbf>,
     /// Optional column index, for filtering
     pub column_index: Option<ColumnIndex>,
     /// Optional offset index, identifying page locations
@@ -209,6 +215,10 @@ pub struct GenericColumnWriter<'a, E: ColumnValueEncoder> {
     rep_levels_sink: Vec<i16>,
     data_pages: VecDeque<CompressedPage>,
 
+    // bloom filter
+    #[cfg(feature = "bloom")]
+    bloom_filter: Option<Sbbf>,
+
     // column index and offset index
     column_index_builder: ColumnIndexBuilder,
     offset_index_builder: OffsetIndexBuilder,
@@ -260,6 +270,9 @@ impl<'a, E: ColumnValueEncoder> GenericColumnWriter<'a, E> {
                 num_column_nulls: 0,
                 column_distinct_count: None,
             },
+            // TODO!
+            #[cfg(feature = "bloom")]
+            bloom_filter: None,
             column_index_builder: ColumnIndexBuilder::new(),
             offset_index_builder: OffsetIndexBuilder::new(),
             encodings,
@@ -458,6 +471,8 @@ impl<'a, E: ColumnValueEncoder> GenericColumnWriter<'a, E> {
         Ok(ColumnCloseResult {
             bytes_written: self.column_metrics.total_bytes_written,
             rows_written: self.column_metrics.total_rows_written,
+            #[cfg(feature = "bloom")]
+            bloom_filter: self.bloom_filter,
             metadata,
             column_index,
             offset_index,
