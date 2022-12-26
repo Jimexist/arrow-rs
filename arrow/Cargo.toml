@@ -63,7 +63,7 @@ packed_simd = { version = "0.3", default-features = false, optional = true, pack
 chrono = { version = "0.4.23", default-features = false, features = ["clock"] }
 comfy-table = { version = "6.0", optional = true, default-features = false }
 pyo3 = { version = "0.17", default-features = false, optional = true }
-multiversion = { version = "0.6.1", default-features = false }
+multiversion = { version = "0.7.1", default-features = false }
 bitflags = { version = "1.2.1", default-features = false, optional = true }
 
 [package.metadata.docs.rs]
